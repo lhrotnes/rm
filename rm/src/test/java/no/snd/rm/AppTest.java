@@ -36,6 +36,6 @@ public class AppTest
         assertTrue( true );
         System.out.println("This is a test of the app");
 
-        App.main(new String[]{"adIds_test.txt"});
+        App.main(new String[]{"adIds_test.txt", "http://webfarm.riksmedia.no/riksmedia/ap/apkj1.htm", "lhrotnes@gmail.com"});
     }
 }
