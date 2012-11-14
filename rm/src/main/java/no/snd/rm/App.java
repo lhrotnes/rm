@@ -16,6 +16,8 @@ import java.util.regex.Pattern;
 
 /**
  * This application monitors and sends reports for Riksmedia ads, integrated on Aftenposten
+ *
+ * Testing branch
  */
 public class App {
 
@@ -87,7 +89,7 @@ public class App {
                 message.setSubject("Riksmedia1 " + ft.format(dNow));
 
                 // Now set the actual message
-                message.setText("The following ad ids has been published since last report:\n" + adsDataBaseToString() );
+                message.setText("The following ad ids have been published since last report:\n" + adsDataBaseToString());
 
                 // Send message
                 Transport.send(message);
