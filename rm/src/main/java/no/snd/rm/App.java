@@ -87,7 +87,7 @@ public class App {
                 message.setSubject("Riksmedia1 " + ft.format(dNow));
 
                 // Now set the actual message
-                message.setText("The following ad ids has been published since last report:\n" + adsDataBaseToString());
+                message.setText("The following ad ids has been published since last report:\n" + adsDataBaseToString() );
 
                 // Send message
                 Transport.send(message);
