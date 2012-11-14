@@ -34,6 +34,8 @@ public class AppTest
     public void testApp()
     {
         assertTrue( true );
-        System.out.println("This is a test");
+        System.out.println("This is a test of the app");
+
+        App.main(new String[]{"adIds_test.txt"});
     }
 }
