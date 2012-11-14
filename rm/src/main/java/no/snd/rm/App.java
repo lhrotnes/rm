@@ -53,7 +53,6 @@ public class App {
             //Read File Line By Line
             while ((strLine = br.readLine()) != null) {
                 // Print the content on the console
-                System.out.println(strLine);
                 set.add(strLine);
             }
             //Close the input stream
