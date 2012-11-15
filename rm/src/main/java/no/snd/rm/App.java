@@ -36,24 +36,22 @@ public class App {
         readExistingIdsFromFile(adDatabase, args[0]);
 
         //2. read html with ads
-        String htmlAds = getHtmlFile(args[1]);
+        String htmlAds = getHtmlFile(args[2]);
 
         //3. extract ad ids from html & add to database
         addIdsToDatabase(adDatabase, htmlAds);
 
-        //5. store ids from database to file on disk
-        writeDatabaseToFile(adDatabase, args[0]);
+        //4. store ids from database to file on disk
+        writeDatabaseToFile(adDatabase, null, args[0]);
 
-        //6. if today is friday, send report with ids to email recipients and store the report in backup directory, delete current db file.
-        sendReport(adDatabase, args[2], true);
-
+        //5. if today is friday, send report with ids to email recipients and store the report in backup directory, clean and delete current database and file
+        sendReport(adDatabase, args[3], args[1],args[0], true);
 
         //debug
         printSetToConsole();
-
     }
 
-    private static void sendReport(SortedSet<Integer> adDatabase, String arg, boolean sendNow) {
+    private static void sendReport(SortedSet<Integer> adDatabase, String recipients, String backupDir, String dbFile, boolean sendNow) {
 
         Date dNow = new Date( );
         SimpleDateFormat ft = new SimpleDateFormat ("yyyyMMdd");
@@ -83,7 +81,7 @@ public class App {
 
                 // Set To: header field of the header.
                 message.addRecipient(Message.RecipientType.TO,
-                        new InternetAddress(arg));
+                        new InternetAddress(recipients));
 
                 // Set Subject: header field
                 message.setSubject("Riksmedia1 " + ft.format(dNow));
@@ -98,11 +96,11 @@ public class App {
                 mex.printStackTrace();
             }
 
-
-
-
             //write file to backup dir
+            writeDatabaseToFile(adDatabase, backupDir,ft.format(dNow) +"_backupreport.txt");
             //clean database
+            adDatabase.clear();
+            writeDatabaseToFile(adDatabase,null,dbFile);
         }
     }
 
@@ -172,9 +170,15 @@ public class App {
         }
     }
 
-    private static void writeDatabaseToFile(SortedSet<Integer> adDatabase, String filePath) {
+    private static void writeDatabaseToFile(SortedSet<Integer> adDatabase, String dir, String filePath) {
         try {
-            File file = new File(filePath);
+            File bac_dir = null;
+            if(dir != null ) {
+                bac_dir = new File(dir);
+                bac_dir.mkdir();
+            }
+
+            File file = new File(bac_dir, filePath);
 
             // if file doesnt exists, then create it
             if (!file.exists()) {
