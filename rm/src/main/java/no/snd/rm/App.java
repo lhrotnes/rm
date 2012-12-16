@@ -22,6 +22,14 @@ import java.util.regex.Pattern;
 public class App {
 
     private static SortedSet<Integer> adDatabase;
+    private static String host = "www.jobbdirekte.no";
+    private static String db_file = "";
+    private static String backup_dir = "";
+    private static String ad_url = "";
+    private static String recipients = "";
+    private static int port = 80;
+
+    private static Properties properties = new Properties();
 
     /**
      * Starting point for application
@@ -29,23 +37,36 @@ public class App {
      * @param args 0. database file ad ids, 1. backup dir, 2. url for html page, 3. email recipients (comma separated)
      */
     public static void main(String[] args) {
+        //0.1 Load properties
+        if (args.length != 1) {
+            System.err.println("Wrong argument. Usage: App <propertyFile>");
+            System.exit(1);
+        } else {
+            try {
+                properties.load(new FileInputStream(args[0]));
+            } catch (IOException e) {
+                System.err.println("Wrong argument. Usage: Jobbdirekte <propertyFile>\n" + e.getMessage() );
+                System.exit(1);
+            }
+        }
+
         //0. initialize the application
         init();
 
         //1. read existing ids from file into "database"
-        readExistingIdsFromFile(adDatabase, args[0]);
+        readExistingIdsFromFile(adDatabase, db_file);
 
         //2. read html with ads
-        String htmlAds = getHtmlFile(args[2]);
+        String htmlAds = getHtmlFile(ad_url);
 
         //3. extract ad ids from html & add to database
         addIdsToDatabase(adDatabase, htmlAds);
 
         //4. store ids from database to file on disk
-        writeDatabaseToFile(adDatabase, null, args[0]);
+        writeDatabaseToFile(adDatabase, null, db_file);
 
         //5. if today is friday, send report with ids to email recipients and store the report in backup directory, clean and delete current database and file
-        sendReport(adDatabase, args[3], args[1],args[0], true);
+        sendReport(adDatabase, recipients, backup_dir,db_file, true);
 
         //debug
         printSetToConsole();
@@ -79,9 +100,16 @@ public class App {
                 // Set From: header field of the header.
                 message.setFrom(new InternetAddress(from));
 
+                String[] addresses = recipients.split(";");
+                InternetAddress[] internetAddresses = new InternetAddress[addresses.length];
+                for (int i = 0; i < addresses.length; i++) {
+                    String address = addresses[i];
+                    internetAddresses[i] = new InternetAddress(address);
+                }
+
                 // Set To: header field of the header.
-                message.addRecipient(Message.RecipientType.TO,
-                        new InternetAddress(recipients));
+                message.addRecipients(Message.RecipientType.TO,
+                        internetAddresses);
 
                 // Set Subject: header field
                 message.setSubject("Riksmedia1 " + ft.format(dNow));
@@ -201,6 +229,14 @@ public class App {
 
 
     private static void init() {
+        //Set properties
+        host = properties.getProperty("host");
+        port = new Integer(properties.getProperty("port", "80")).intValue();
+        db_file = properties.getProperty("db_file");
+        backup_dir = properties.getProperty("backup_dir");
+        ad_url = properties.getProperty("ad_url");
+        recipients = properties.getProperty("recipients");
+
         adDatabase = new TreeSet<Integer>();
     }
 

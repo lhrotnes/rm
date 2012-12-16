@@ -32,4 +32,20 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <finalName>appd</finalName>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/assemble/exe.xml</descriptor>
+                    </descriptors>
+                    <archive>
+                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
