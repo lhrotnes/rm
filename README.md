@@ -1,12 +1,8 @@
 RM - Riksmedia monitor
 Small Java application for monitoring Riksmedia ads on Aftenposten no.
-
-TODO
-package executable                http://left.subtree.org/2008/01/24/creating-executable-jars-with-maven/
-provide readme doc
-install and test on generator
-
+Full doc. is located in confluence.(SND)
 ------
+
 Project creation:
 $ mvn archetype:create -DgroupId=org.qnot.example -DartifactId=hello-world
 
@@ -21,3 +17,6 @@ Command to create jar file with associated jar files: mvn assembly:single
 
 $ java -jar target/app-exe.jar
 
+-----
+Resources:
+package executable                http://left.subtree.org/2008/01/24/creating-executable-jars-with-maven/
