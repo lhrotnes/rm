@@ -1,6 +1,5 @@
 RM - Riksmedia monitor
 Small Java application for monitoring Riksmedia ads on Aftenposten no.
-Full doc. is located in confluence.(SND)
 ------
 
 Project creation:
