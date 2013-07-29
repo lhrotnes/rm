@@ -15,21 +15,28 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * This application monitors and sends reports for Riksmedia ads, integrated on Aftenposten
+ * This application monitors and sends reports for Riksmedia ads, integrated on Aftenposten.
+ * The application acts as a small script, monitoring a htmlfile with ads and is sampling statics on the number of
+ * different ads displayed in this html.
  *
- * Testing branch
+ * - please refer to property files for, source urls etc
  */
 public class App {
 
     private static SortedSet<Integer> adDatabase;
+    private static SortedSet<Integer> currentAdReport;
+
     private static String host = "www.jobbdirekte.no";
     private static String db_file = "";
+    private static String report_file = "";
     private static String backup_dir = "";
     private static String ad_url = "";
     private static String recipients = "";
+    private static String subject = "";
     private static int port = 80;
 
     private static Properties properties = new Properties();
+
 
     /**
      * Starting point for application
@@ -45,7 +52,7 @@ public class App {
             try {
                 properties.load(new FileInputStream(args[0]));
             } catch (IOException e) {
-                System.err.println("Wrong argument. Usage: Jobbdirekte <propertyFile>\n" + e.getMessage() );
+                System.err.println("Wrong argument. Usage: App <propertyFile>\n" + e.getMessage());
                 System.exit(1);
             }
         }
@@ -56,31 +63,48 @@ public class App {
         //1. read existing ids from file into "database"
         readExistingIdsFromFile(adDatabase, db_file);
 
-        //2. read html with ads
+        //2. read current ad report
+        readExistingIdsFromFile(currentAdReport, report_file);
+
+        //3. read html with ads
         String htmlAds = getHtmlFile(ad_url);
 
-        //3. extract ad ids from html & add to database
+        //4. extract ad ids from html, add to database and current report
         addIdsToDatabase(adDatabase, htmlAds);
 
-        //4. store ids from database to file on disk
+        //5. store ids in database to file on disk
         writeDatabaseToFile(adDatabase, null, db_file);
 
-        //5. if today is friday, send report with ids to email recipients and store the report in backup directory, clean and delete current database and file
-        sendReport(adDatabase, recipients, backup_dir,db_file, true);
+        //6. store ids in current report to disk
+        writeDatabaseToFile(currentAdReport, null, report_file);
+
+        //5. if today is friday, send current report with ids to email recipients, store the report in backup directory, clean and prepare current report for next sending
+        sendReport(adDatabase, currentAdReport, recipients, backup_dir, db_file, false);
 
         //debug
-        printSetToConsole();
+        //printSetsToConsole();
     }
 
-    private static void sendReport(SortedSet<Integer> adDatabase, String recipients, String backupDir, String dbFile, boolean sendNow) {
 
-        Date dNow = new Date( );
-        SimpleDateFormat ft = new SimpleDateFormat ("yyyyMMdd");
+    /**
+     * Method for sending report and backing up old report
+     *
+     * @param adDatabase
+     * @param currentAdReport
+     * @param recipients
+     * @param backupDir
+     * @param dbFile
+     * @param sendNow
+     */
+    private static void sendReport(SortedSet<Integer> adDatabase, SortedSet<Integer> currentAdReport, String recipients, String backupDir, String dbFile, boolean sendNow) {
+
+        Date dNow = new Date();
+        SimpleDateFormat ft = new SimpleDateFormat("yyyyMMdd");
 
         //create Calendar instance
         Calendar now = Calendar.getInstance();
         //If friday, send report
-        if(6 == now.get(Calendar.DAY_OF_WEEK) || sendNow ){
+        if (6 == now.get(Calendar.DAY_OF_WEEK) || sendNow) {
             //send email
             // Sender's email ID needs to be mentioned
             String from = "generator@medianorge.no";
@@ -93,7 +117,7 @@ public class App {
             // Get the default Session object.
             Session session = Session.getDefaultInstance(properties);
 
-            try{
+            try {
                 // Create a default MimeMessage object.
                 MimeMessage message = new MimeMessage(session);
 
@@ -112,26 +136,33 @@ public class App {
                         internetAddresses);
 
                 // Set Subject: header field
-                message.setSubject("Riksmedia1 " + ft.format(dNow));
+                message.setSubject(subject + " - " + ft.format(dNow));
 
                 // Now set the actual message
-                message.setText("The following ad ids have been published since last report:\n" + adsDataBaseToString());
+                message.setText("The following ad ids have been published since last report:\n" + adsReportToString());
 
                 // Send message
                 Transport.send(message);
                 System.out.println("Sent message successfully....");
-            }catch (MessagingException mex) {
+            } catch (MessagingException mex) {
                 mex.printStackTrace();
             }
 
-            //write file to backup dir
-            writeDatabaseToFile(adDatabase, backupDir,ft.format(dNow) +"_backupreport.txt");
-            //clean database
-            adDatabase.clear();
-            writeDatabaseToFile(adDatabase,null,dbFile);
+            //write report to backup dir
+            writeDatabaseToFile(currentAdReport, backupDir, ft.format(dNow) + "_" + report_file + "_bac.txt");
+            //clean current report
+            currentAdReport.clear();
+            writeDatabaseToFile(currentAdReport, null, report_file);
         }
     }
 
+    /**
+     * add ids to the "global" database, and to the current report file
+     * - current report file, contains new ids since last report was sent
+     *
+     * @param adDatabase
+     * @param htmlAds
+     */
     private static void addIdsToDatabase(SortedSet<Integer> adDatabase, String htmlAds) {
 
         Pattern pattern = Pattern.compile("jobid=(\\d+)");
@@ -139,7 +170,11 @@ public class App {
 
         while (matcher.find()) {
             //System.out.println(matcher.group(1));
-            adDatabase.add(new Integer(matcher.group(1)));
+            Integer currentId = new Integer(matcher.group(1));
+            boolean isNewAd = adDatabase.add(currentId);
+            if (isNewAd) { /* Only add new ids not already in database to current report */
+                currentAdReport.add(currentId);
+            }
         }
     }
 
@@ -194,14 +229,16 @@ public class App {
             in.close();
 
         } catch (Exception e) {//Catch exception if any
+            e.printStackTrace();
             System.err.println("Error: " + e.getMessage());
         }
     }
 
+
     private static void writeDatabaseToFile(SortedSet<Integer> adDatabase, String dir, String filePath) {
         try {
             File bac_dir = null;
-            if(dir != null ) {
+            if (dir != null) {
                 bac_dir = new File(dir);
                 bac_dir.mkdir();
             }
@@ -233,26 +270,40 @@ public class App {
         host = properties.getProperty("host");
         port = new Integer(properties.getProperty("port", "80")).intValue();
         db_file = properties.getProperty("db_file");
+        report_file = properties.getProperty("report_file");
         backup_dir = properties.getProperty("backup_dir");
         ad_url = properties.getProperty("ad_url");
         recipients = properties.getProperty("recipients");
+        subject = properties.getProperty("mail_subject");
 
         adDatabase = new TreeSet<Integer>();
+        currentAdReport = new TreeSet<Integer>();
     }
 
-    private static void printSetToConsole() {
+    private static void printSetsToConsole() {
+        System.out.println("Total database: ");
         for (Iterator<Integer> iterator = adDatabase.iterator(); iterator.hasNext(); ) {
+            Integer next = iterator.next();
+            System.out.println(next);
+        }
+
+        System.out.println("Current report: ");
+        for (Iterator<Integer> iterator = currentAdReport.iterator(); iterator.hasNext(); ) {
             Integer next = iterator.next();
             System.out.println(next);
         }
     }
 
-    private static String adsDataBaseToString() {
+    private static String adsReportToString() {
         StringBuffer buffer = new StringBuffer();
-        for (Iterator<Integer> iterator = adDatabase.iterator(); iterator.hasNext(); ) {
+        for (Iterator<Integer> iterator = currentAdReport.iterator(); iterator.hasNext(); ) {
             Integer next = iterator.next();
             buffer.append(next).append("\n");
         }
+
+        buffer.append("\n");
+        buffer.append("No of new ads " + currentAdReport.size());
+
         return buffer.toString();
     }
 

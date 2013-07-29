@@ -37,5 +37,7 @@ public class AppTest
         System.out.println("This is a test of the app");
 
         App.main(new String[]{"/Users/relarotn/JavaProjects/working_riksmedia/rm/src/main/resources/app.properties"});
+
+        App.main(new String[]{"/Users/relarotn/JavaProjects/working_riksmedia/rm/src/main/resources/app2.properties"});
     }
 }
